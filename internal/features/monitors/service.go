@@ -2,6 +2,10 @@ package monitors
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/google/uuid"
 	monitorsDTO "github.com/magomed066/url-checker/internal/dto/monitors"
@@ -18,13 +22,37 @@ func NewService(store *store.Store) service {
 	}
 }
 
-func (s *service) Create(ctx context.Context, payload monitorsDTO.CreateMonitorRequest) {
-	id := uuid.New()
+func (s *service) Create(ctx context.Context, payload monitorsDTO.CreateMonitorRequest) (store.Monitor, error) {
 
-	s.store.Set(id.String(), store.Monitor{
-		ID:              id.String(),
-		Url:             payload.Url,
+	target := strings.TrimSpace(payload.Url)
+	parsed, err := url.Parse(target)
+
+	if err != nil ||
+		(parsed.Scheme != "http" && parsed.Scheme != "https") ||
+		parsed.Hostname() == "" {
+		return store.Monitor{}, fmt.Errorf(
+			"%w: URL must use http or https and include a hostname",
+			errors.New("invalid monitor input"),
+		)
+	}
+
+	if payload.IntervalSeconds < 5 || payload.IntervalSeconds > 86400 {
+		return store.Monitor{}, fmt.Errorf(
+			"%w: interval must be between 5 and 86400 seconds",
+			errors.New("invalid monitor input"),
+		)
+	}
+
+	monitor := store.Monitor{
+		ID:              uuid.NewString(),
+		Url:             target,
 		IntervalSeconds: payload.IntervalSeconds,
 		Enabled:         true,
-	})
+	}
+
+	if _, err := s.store.Set(monitor.ID, monitor); err != nil {
+		return store.Monitor{}, fmt.Errorf("create monitor: %w", err)
+	}
+
+	return monitor, nil
 }
