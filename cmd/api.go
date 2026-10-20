@@ -6,11 +6,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/magomed066/url-checker/internal/features/monitors"
+	"github.com/magomed066/url-checker/internal/store"
 )
 
 type application struct {
 	addr   string
 	config config
+	store  *store.Store
 }
 
 type config struct {
@@ -33,6 +36,13 @@ func (app *application) mount() http.Handler {
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Server is running"))
+	})
+
+	monitorsService := monitors.NewService(app.store)
+	monitorsHandler := monitors.NewHandler(monitorsService)
+
+	r.Route("/monitors", func(r chi.Router) {
+		r.Post("/", monitorsHandler.Create)
 	})
 
 	return r

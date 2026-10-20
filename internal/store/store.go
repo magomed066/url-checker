@@ -43,7 +43,7 @@ func (s *Store) Get(key string) (Monitor, error) {
 
 	val, exists := s.data[key]
 	if !exists {
-		return Monitor{}, errors.New("monitor does not exist")
+		return Monitor{}, errors.New(" does not exist")
 	}
 
 	return val, nil
@@ -54,7 +54,7 @@ func (s *Store) Update(key string, value Monitor) (Monitor, error) {
 	defer s.mu.Unlock()
 
 	if _, exists := s.data[key]; !exists {
-		return Monitor{}, errors.New("monitor does not exist")
+		return Monitor{}, errors.New(" does not exist")
 	}
 
 	value.ID = key
