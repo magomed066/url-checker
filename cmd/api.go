@@ -14,6 +14,7 @@ type application struct {
 	addr   string
 	config config
 	store  *store.Store
+	client *http.Client
 }
 
 type config struct {
@@ -38,7 +39,7 @@ func (app *application) mount() http.Handler {
 		w.Write([]byte("Server is running"))
 	})
 
-	monitorsService := monitors.NewService(app.store)
+	monitorsService := monitors.NewService(app.store, app.client)
 	monitorsHandler := monitors.NewHandler(monitorsService)
 
 	r.Route("/monitors", func(r chi.Router) {

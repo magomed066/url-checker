@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -13,16 +14,21 @@ import (
 )
 
 type service struct {
-	store *store.Store
+	store  *store.Store
+	client *http.Client
 }
 
-func NewService(store *store.Store) service {
+func NewService(store *store.Store, client *http.Client) service {
 	return service{
-		store: store,
+		store:  store,
+		client: client,
 	}
 }
 
 func (s *service) Create(ctx context.Context, payload monitorsDTO.CreateMonitorRequest) (store.Monitor, error) {
+	if err := ctx.Err(); err != nil {
+		return store.Monitor{}, err
+	}
 
 	target := strings.TrimSpace(payload.Url)
 	parsed, err := url.Parse(target)
@@ -55,4 +61,14 @@ func (s *service) Create(ctx context.Context, payload monitorsDTO.CreateMonitorR
 	}
 
 	return monitor, nil
+}
+
+func (s *service) GetAll(ctx context.Context) ([]store.Monitor, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	monitors := s.store.List()
+
+	return monitors, nil
 }

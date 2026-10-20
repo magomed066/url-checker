@@ -43,3 +43,13 @@ func (h *handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	json.WriteJSON(w, http.StatusCreated, monitor)
 }
+
+func (h *handler) GetAll(w http.ResponseWriter, r *http.Request) {
+	list, err := h.service.GetAll(r.Context())
+	if err != nil {
+		json.WriteJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	json.WriteJSON(w, http.StatusOK, list)
+}
