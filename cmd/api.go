@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -49,7 +51,7 @@ func (app *application) mount() http.Handler {
 	return r
 }
 
-func (app *application) run(h http.Handler) error {
+func (app *application) run(ctx context.Context, h http.Handler) error {
 	server := http.Server{
 		Addr:         app.addr,
 		Handler:      h,
@@ -58,5 +60,34 @@ func (app *application) run(h http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 
-	return server.ListenAndServe()
+	errorCh := make(chan error, 1)
+
+	go func() {
+		err := server.ListenAndServe()
+
+		errorCh <- err
+	}()
+
+	select {
+	case err := <-errorCh:
+		return err
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(),
+			5*time.Second,
+		)
+		defer cancel()
+
+		shutdownErr := server.Shutdown(shutdownCtx)
+		if shutdownErr != nil {
+			_ = server.Close()
+		}
+
+		serverErr := <-errorCh
+		if errors.Is(serverErr, http.ErrServerClosed) {
+			serverErr = nil
+		}
+
+		return errors.Join(shutdownErr, serverErr)
+	}
 }
