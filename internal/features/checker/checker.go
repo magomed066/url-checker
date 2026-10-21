@@ -16,22 +16,13 @@ type CheckResult struct {
 	Err        error
 }
 
-func Check(
-	ctx context.Context,
-	client *http.Client,
-	monitor store.Monitor,
-) CheckResult {
+func Check(ctx context.Context, client *http.Client, monitor store.Monitor) CheckResult {
 	result := CheckResult{
 		MonitorID: monitor.ID,
 		CheckedAt: time.Now(),
 	}
 
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		monitor.Url,
-		nil,
-	)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, monitor.Url, nil)
 	if err != nil {
 		result.Duration = time.Since(result.CheckedAt)
 		result.Err = err
